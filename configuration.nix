@@ -52,6 +52,7 @@
 
   systemd.tmpfiles.rules = [ "f /etc/netgroup" ]; # stat failed for file `/etc/netgroup'; will try again later: No such file or directory
 
+  programs.vim.defaultEditor = true;
   # List packages installed in system profile. To search, run:
   # $ nix search wget
   environment.systemPackages = with pkgs; [
@@ -69,7 +70,32 @@
     gitAndTools.gitFull
     strace
   ];
+  programs.zsh = {
+    enable = true;
+    autosuggestions.enable = true;
+    ohMyZsh = {
+      enable = true;
+      customPkgs = [];
+      theme = "fishy";
+      plugins = [ "git" "github" "z" "docker" "colored-man-pages" ];
+    };
+    interactiveShellInit = ''
+      source "$(fzf-share)/key-bindings.zsh"
+      source "$(fzf-share)/completion.zsh"
+      eval "$(direnv hook zsh)"
+      export DIRENV_LOG_FORMAT= # Silence direnv
+    '';
+    promptInit = ''
+      any-nix-shell zsh --info-right | source /dev/stdin
+    '';
+    syntaxHighlighting.enable = true;
+  };
 
+  nix = {
+    buildCores = 3;
+    daemonNiceLevel = 5;
+    daemonIONiceLevel = 5;
+  };
   # List services that you want to enable:
 
   # Enable the OpenSSH daemon.
