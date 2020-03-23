@@ -55,10 +55,19 @@
   # List packages installed in system profile. To search, run:
   # $ nix search wget
   environment.systemPackages = with pkgs; [
+    manpages
+    posix_man_pages
+
     wget
     vim
     git
     raspberrypi-tools
+    fzf
+    direnv
+    htop
+    any-nix-shell
+    gitAndTools.gitFull
+    strace
   ];
 
   # List services that you want to enable:
