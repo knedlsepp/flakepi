@@ -15,7 +15,7 @@
   boot.kernelPackages = pkgs.linuxPackages_rpi4;
   boot.consoleLogLevel = lib.mkDefault 7;
 
-  networking.hostName = "strawberry"; # Define your hostname.
+  networking.hostName = "sempfberry"; # Define your hostname.
   networking.wireless = {
     enable = true;
     networks = {
