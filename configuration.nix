@@ -25,6 +25,7 @@
       };
     };
   };
+  systemd.services.wpa_supplicant.serviceConfig.Restart = "always"; # First login attempt doesn't work for whatever reason
 
   # The global useDHCP flag is deprecated, therefore explicitly set to false here.
   # Per-interface useDHCP will be mandatory in the future, so this generated config
@@ -32,6 +33,8 @@
   networking.useDHCP = false;
   networking.interfaces.eth0.useDHCP = true;
   networking.interfaces.wlan0.useDHCP = true;
+  networking.enableIPv6 = false;
+  # networking.defaultGateway = { address = "192.168.43.1"; interface = "wlan0"; }; # Only enable if you're having issues with the WiFi gateway
 
   # Configure network proxy if necessary
   # networking.proxy.default = "http://user:password@proxy:port/";
