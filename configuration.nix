@@ -50,6 +50,8 @@
   # Set your time zone.
   time.timeZone = "Europe/Vienna";
 
+  systemd.tmpfiles.rules = [ "f /etc/netgroup" ]; # stat failed for file `/etc/netgroup'; will try again later: No such file or directory
+
   # List packages installed in system profile. To search, run:
   # $ nix search wget
   environment.systemPackages = with pkgs; [
