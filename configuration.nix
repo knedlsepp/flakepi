@@ -25,7 +25,12 @@
       };
     };
   };
-  systemd.services.wpa_supplicant.serviceConfig.Restart = "always"; # First login attempt doesn't work for whatever reason
+  systemd.services.wpa_supplicant.serviceConfig = {
+    # First login attempt doesn't work for whatever reason
+    Restart = "always";
+    RestartSec = 8;
+    StartLimitIntervalSec = 0; # Don't stop trying after a couple of restarts
+  };
 
   # The global useDHCP flag is deprecated, therefore explicitly set to false here.
   # Per-interface useDHCP will be mandatory in the future, so this generated config
