@@ -97,6 +97,7 @@
   };
 
   nix = {
+    trustedUsers = [ "root" "@wheel" ];
     buildCores = 3;
     daemonNiceLevel = 5;
     daemonIONiceLevel = 5;
