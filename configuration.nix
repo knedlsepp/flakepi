@@ -19,9 +19,9 @@
   networking.wireless = {
     enable = true;
     networks = {
-      bananaNet = {
+      knoedelnetz = {
         # Generated using `wpa_passphrase bananaNet`. A slight security issue, but I don't have wired networking yet...
-        pskRaw = "8932ea09b8f3b13d65a770a6f49c1ed84383bd5d7bc0c9b2cd3d5d5ea883863c";
+        pskRaw = "1aeec582e79412fc44efa16ebfd399e22be96bbcf7a7eab9e00b94972c487c18";
       };
     };
   };
