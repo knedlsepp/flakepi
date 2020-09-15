@@ -119,13 +119,33 @@
   hardware.pulseaudio.enable = true;
 
   # Enable the X11 windowing system.
-  # services.xserver.enable = true;
-  # services.xserver.layout = "us";
-  # services.xserver.xkbOptions = "eurosign:e";
+  services.xserver = {
+    enable = true;
+    displayManager.sddm = {
+      enable = true;
+      autoLogin.enable = true;
+      autoLogin.user = "sepp";
+    };
+    desktopManager.plasma5.enable = true;
+    desktopManager.kodi.enable = false;
+    videoDrivers = [ "modesetting" ];
+    layout = "de,us";
+    xkbOptions = "eurosign:e, ctrl:nocaps";
+  };
+  hardware.opengl = {
+    enable = true;
+    setLdLibraryPath = true;
+    package = pkgs.mesa_drivers;
+  };
+  hardware.deviceTree = {
+    base = pkgs.device-tree_rpi;
+    overlays = [ "${pkgs.device-tree_rpi.overlays}/vc4-fkms-v3d.dtbo" ];
+  };
+  boot.loader.raspberryPi.firmwareConfig = ''
+    gpu_mem=192
+  '';
+  networking.networkmanager.enable = lib.mkForce false;
 
-  # Enable the KDE Desktop Environment.
-  # services.xserver.displayManager.sddm.enable = true;
-  # services.xserver.desktopManager.plasma5.enable = true;
 
   # Define a user account. Don't forget to set a password with 'passwd'
   users.users.root = {
