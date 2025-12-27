@@ -1,5 +1,21 @@
 {
   "nodes": {
+    "n64-unfloader": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1765230962,
+        "narHash": "sha256-+puKkK3IJIeiNnQrLQjw2bJIyboqbbCMDYkbDoC51Jk=",
+        "owner": "buu342",
+        "repo": "N64-UNFLoader",
+        "rev": "8a371c551a0f1af2f4351ad6d7fb877c6ac8e29b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "buu342",
+        "repo": "N64-UNFLoader",
+        "type": "github"
+      }
+    },
     "nixos-hardware": {
       "locked": {
         "lastModified": 1766568855,
@@ -33,6 +49,7 @@
     },
     "root": {
       "inputs": {
+        "n64-unfloader": "n64-unfloader",
         "nixos-hardware": "nixos-hardware",
         "nixpkgs": "nixpkgs"
       }

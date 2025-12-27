@@ -1,6 +1,6 @@
 { pkgs, config, lib, ... }:
 {
-  environment.systemPackages = with pkgs; [ vim git htop strace ];
+  environment.systemPackages = with pkgs; [ vim git htop strace n64-unfloader ];
   services.openssh.enable = true;
   networking.hostName = "sempfberry";
   users = {
