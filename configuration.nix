@@ -11,6 +11,7 @@
     };
   };
   networking = {
+    networkmanager.enable = lib.mkForce false;
     interfaces."wlan0".useDHCP = true;
     wireless = {
       interfaces = [ "wlan0" ];
