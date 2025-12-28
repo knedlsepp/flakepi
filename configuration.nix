@@ -1,6 +1,31 @@
 { pkgs, config, lib, ... }:
 {
   environment.systemPackages = with pkgs; [ vim git htop strace n64-unfloader ];
+
+  # UNFLoader service configuration
+  systemd.services.unfloader-upload = {
+    description = "UNFLoader ROM Upload Service";
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      Type = "simple";
+      ExecStart = "${pkgs.n64-unfloader}/bin/UNFLoader -f 4 -b -l -d -r /var/lib/unfloader/rom.n64";
+      User = "unfloader";
+      Group = "unfloader";
+      Restart = "always";
+    };
+  };
+
+  # Create unfloader user and group
+  users.users.unfloader = {
+    isSystemUser = true;
+    createHome = true;
+    description = "UNFLoader service user";
+    group = "unfloader";
+  };
+
+  users.groups.unfloader = { };
+
+
   services.openssh.enable = true;
   networking.hostName = "sempfberry";
   users = {
