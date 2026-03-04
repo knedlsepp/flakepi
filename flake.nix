@@ -4,15 +4,21 @@
     nixos-hardware.url = "github:nixos/nixos-hardware";
     n64-unfloader.url = "github:buu342/N64-UNFLoader";
     n64-unfloader.flake = false;
+    summercart64.url = "github:Polprzewodnikowy/SummerCart64";
+    summercart64.flake = false;
+
     llm-agents.url = "github:numtide/llm-agents.nix";
   };
-  outputs = { self, nixpkgs, nixos-hardware, n64-unfloader, llm-agents }: {
+  outputs = { self, nixpkgs, nixos-hardware, n64-unfloader, llm-agents, summercart64 }: {
     nixosConfigurations = {
       sempfberry = nixpkgs.lib.nixosSystem {
         system = "aarch64-linux";
         modules = [
           ({ pkgs, ... }: {
-            nixpkgs.overlays = [ (import ./overlays/n64-unfloader.nix { inherit n64-unfloader; n64-unfloader-src = n64-unfloader; }) ];
+            nixpkgs.overlays = [
+              (import ./overlays/n64-unfloader.nix { inherit n64-unfloader; n64-unfloader-src = n64-unfloader; })
+              (import ./overlays/sc64deployer.nix { inherit summercart64; summercart64-src = summercart64; })
+            ];
           })
           nixos-hardware.nixosModules.raspberry-pi-4
           ./configuration.nix

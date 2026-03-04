@@ -1,9 +1,43 @@
 { pkgs, config, lib, ... }:
 {
-  environment.systemPackages = with pkgs; [ vim git htop strace n64-unfloader ];
+  environment.systemPackages = with pkgs; [ vim git htop strace n64-unfloader sc64deployer ];
+
+  systemd.services.sc64deployer = {
+    enable = true;
+    description = "sc64deployer ROM Upload Service";
+    wantedBy = [ "multi-user.target" ];
+    unitConfig = {
+      StartLimitIntervalSec = "0";
+    };
+    serviceConfig = {
+      Type = "simple";
+      ExecStart =  let
+          upload-rom = pkgs.writeShellApplication {
+            name = "upload-rom";
+            runtimeInputs = [
+              pkgs.sc64deployer
+            ];
+            text = ''
+              until sc64deployer list; do sleep 2; done
+              sc64deployer upload /var/lib/unfloader/build.rom
+              # Prevent "[IS-Viewer 64]: Stopped listening" via 'tail -f /dev/null'
+              tail -f /dev/null | sc64deployer debug --isv 0x03FF0000
+            '';
+          };
+        in
+        "${upload-rom}/bin/upload-rom";
+
+      User = "sc64deployer";
+      Group = "sc64deployer";
+      Restart = "always";
+      RestartSec = "1";
+    };
+  };
+
 
   # UNFLoader service configuration
   systemd.services.unfloader-upload = {
+    enable = false;
     description = "UNFLoader ROM Upload Service";
     wantedBy = [ "multi-user.target" ];
     serviceConfig = {
@@ -24,6 +58,20 @@
   };
 
   users.groups.unfloader = { };
+
+
+  # Create sc64deployer user and group
+  users.users.sc64deployer = {
+    isSystemUser = true;
+    createHome = true;
+    description = "sc64deployer service user";
+    group = "sc64deployer";
+    extraGroups =  [
+      "dialout" # Access to serial device
+    ];
+  };
+
+  users.groups.sc64deployer = { };
 
 
   services.openssh.enable = true;

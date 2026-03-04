@@ -110,7 +110,24 @@
         "llm-agents": "llm-agents",
         "n64-unfloader": "n64-unfloader",
         "nixos-hardware": "nixos-hardware",
-        "nixpkgs": "nixpkgs_2"
+        "nixpkgs": "nixpkgs_2",
+        "summercart64": "summercart64"
+      }
+    },
+    "summercart64": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1746822674,
+        "narHash": "sha256-8eKf6g3YeZ+38kP3HyAE1Fiyw2D5MKuyo66KirtHNiw=",
+        "owner": "Polprzewodnikowy",
+        "repo": "SummerCart64",
+        "rev": "a1e7996d2cbece686820a5c785029c68514f17b0",
+        "type": "github"
+      },
+      "original": {
+        "owner": "Polprzewodnikowy",
+        "repo": "SummerCart64",
+        "type": "github"
       }
     },
     "systems": {
