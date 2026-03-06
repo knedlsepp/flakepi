@@ -34,6 +34,40 @@
     };
   };
 
+  systemd.services.drink-dispenser = {
+    enable = true;
+    description = "Dispense drinks based on the logs from the SC64";
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      Type = "simple";
+      ExecStart =
+        let
+          drink-dispenser = pkgs.writeShellApplication {
+            name = "drink-dispenser";
+            runtimeInputs = [
+              pkgs.jq
+              pkgs.libgpiod
+            ];
+            text = ''
+              playerToGPIO=(5 6 13 16 19 20 21 26)
+              journalctl --since now -f -u sc64deployer -o cat | while IFS= read -r line
+              do
+                echo "$line" | jq -e . >/dev/null 2>&1 || continue
+
+                event=$(echo "$line" | jq -r '.event') || continue
+                playerIndex=$(echo "$line" | jq -r '.playerIndex') || continue
+                if [ "$event" = "balloon_pop" ] && [ -n "$playerIndex" ]; then
+                  echo "Dispensing drink for Player #$playerIndex";
+                  gpioset -c 0 -l -t 1500ms,0s "''${playerToGPIO[$playerIndex]}=1" &
+                fi
+              done
+            '';
+          };
+        in
+        "${drink-dispenser}/bin/drink-dispenser";
+      Restart = "always";
+    };
+  };
 
   # UNFLoader service configuration
   systemd.services.unfloader-upload = {
