@@ -54,9 +54,8 @@
               do
                 echo "$line" | jq -e . >/dev/null 2>&1 || continue
 
-                event=$(echo "$line" | jq -r '.event') || continue
                 playerIndex=$(echo "$line" | jq -r '.playerIndex') || continue
-                if [ "$event" = "balloon_pop" ] && [ -n "$playerIndex" ]; then
+                if [ -n "$playerIndex" ]; then
                   echo "Dispensing drink for Player #$playerIndex";
                   gpioset -c 0 -l -t 1500ms,0s "''${playerToGPIO[$playerIndex]}=1" &
                 fi
