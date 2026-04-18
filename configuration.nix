@@ -1,6 +1,6 @@
 { pkgs, config, lib, ... }:
 {
-  environment.systemPackages = with pkgs; [ vim git htop strace n64-unfloader sc64deployer ];
+  environment.systemPackages = with pkgs; [ vim git htop strace sc64deployer ];
 
   systemd.services.sc64deployer = {
     enable = true;
@@ -19,7 +19,7 @@
             ];
             text = ''
               until sc64deployer list; do sleep 2; done
-              sc64deployer upload /var/lib/unfloader/build.rom
+              sc64deployer upload /var/lib/sc64deployer/build.rom
               # Prevent "[IS-Viewer 64]: Stopped listening" via 'tail -f /dev/null'
               tail -f /dev/null | sc64deployer debug --isv 0x03FF0000
             '';
@@ -69,29 +69,7 @@
     };
   };
 
-  # UNFLoader service configuration
-  systemd.services.unfloader-upload = {
-    enable = false;
-    description = "UNFLoader ROM Upload Service";
-    wantedBy = [ "multi-user.target" ];
-    serviceConfig = {
-      Type = "simple";
-      ExecStart = "${pkgs.n64-unfloader}/bin/UNFLoader -f 4 -b -l -d -r /var/lib/unfloader/rom.n64";
-      User = "unfloader";
-      Group = "unfloader";
-      Restart = "always";
-    };
-  };
 
-  # Create unfloader user and group
-  users.users.unfloader = {
-    isSystemUser = true;
-    createHome = true;
-    description = "UNFLoader service user";
-    group = "unfloader";
-  };
-
-  users.groups.unfloader = { };
 
 
   # Create sc64deployer user and group
