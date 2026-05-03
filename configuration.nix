@@ -54,6 +54,9 @@
               allowlist=(
                 "hit_banana"
                 "explosion_crash"
+                "terrain_tumble"
+                "hit_paddle_boat"
+                "squished"
                 "fell_in_lava"
                 "fell_in_water"
                 "high_tumble"
@@ -62,6 +65,8 @@
                 "low_tumble"
                 "negroni_code"
                 "spinout"
+                "driving_spinout"
+                "early_start_spinout"
                 # "star_hit" # FIXME: if player hits CPU => issue # {"event":"star_hit", "ownerIndex":2, "playerIndex":0, "isHumanOwner":false, "isHumanPlayer":true}
               )
 
