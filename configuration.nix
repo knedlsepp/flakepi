@@ -54,7 +54,7 @@
               do
                 echo "$line" | jq -e . >/dev/null 2>&1 || continue
 
-                playerIndex=$(echo "$line" | jq -r '.playerIndex') || continue
+                playerIndex=$(echo "$line" | jq -r '.playerIndex // empty') || continue
                 if [ -n "$playerIndex" ]; then
                   echo "Dispensing drink for Player #$playerIndex";
                   gpioset -c 0 -l -t 1500ms,0s "''${playerToGPIO[$playerIndex]}=1" &
