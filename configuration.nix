@@ -56,6 +56,7 @@
                 "explosion_crash"
                 "fell_in_lava"
                 "fell_in_water"
+                "hit_by_star"
                 "lightning_strike"
                 "negroni_code"
                 "spinout"
