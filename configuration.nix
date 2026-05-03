@@ -51,52 +51,24 @@
             text = ''
               playerToGPIO=(5 6 13 16 19 20 21 26)
 
-              # Define allowed events
-              allowlist=(
-                # "actor_collision" # Item box etc
-                # "actor_to_actor_collision" # Shell hits banana
-                # "balloon_pop" # Redundant with other events
-                "driving_spinout"
-                "early_start_spinout"
-                "explosion_crash"
-                "fell_in_lava"
-                "fell_in_water"
-                # "game_start"
-                "high_tumble"
-                "hit_banana"
-                "hit_by_star"
-                "hit_paddle_boat"
-                "lightning_strike"
-                "lightning_used"
-                "low_tumble"
-                "negroni_code"
-                # "player_collision" # Just "bonk"
-                "spinout"
-                "squished"
-                "star_hit"
-                "terrain_tumble"
-                "vehicle_collision"
+              journalctl --since now -f -u sc64deployer -o cat | \
+              jq -rc 'select(
+                (.event == "hit_banana") or
+                (.event == "explosion_crash") or
+                (.event == "fell_in_lava") or
+                (.event == "fell_in_water") or
+                (.event == "lightning_strike") or
+                (.event == "spinout")
               )
-
-              isAllowed() {
-                local e="$1"
-                for w in "''${allowlist[@]}"; do
-                  [[ "$e" == "$w" ]] && return 0
-                done
-                return 1
-              }
-
-              journalctl --since now -f -u sc64deployer -o cat | while IFS= read -r line
+              | select(.playerIndex != null)
+              | select((.isHumanPlayer // true) == true)' | \
+              while IFS= read -r line
               do
-                echo "$line" | jq -e . >/dev/null 2>&1 || continue
+                playerIndex=$(echo "$line" | jq -r '.playerIndex')
+                event=$(echo "$line" | jq -r '.event')
 
-                event=$(echo "$line" | jq -r '.event // empty') || continue
-                playerIndex=$(echo "$line" | jq -r '.playerIndex // empty') || continue
-
-                if [ -n "$event" ] && [ -n "$playerIndex" ] && isAllowed "$event"; then
-                  echo "Dispensing drink for Player #$playerIndex (event: $event)"
-                  gpioset -c 0 -l -t 1500ms,0s "''${playerToGPIO[$playerIndex]}=1" &
-                fi
+                echo "Dispensing drink for Player #$playerIndex (event: $event)"
+                gpioset -c 0 -l -t 1500ms,0s "''${playerToGPIO[$playerIndex]}=1" &
               done
             '';
           };
