@@ -11,6 +11,7 @@
     };
     serviceConfig = {
       Type = "simple";
+      SyslogIdentifier = "sc64deployer";
       ExecStart =  let
           upload-rom = pkgs.writeShellApplication {
             name = "upload-rom";
