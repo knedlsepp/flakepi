@@ -11,7 +11,6 @@
     };
     serviceConfig = {
       Type = "simple";
-      SyslogIdentifier = "sc64deployer";
       ExecStart =  let
           upload-rom = pkgs.writeShellApplication {
             name = "upload-rom";
@@ -52,24 +51,37 @@
             text = ''
               playerToGPIO=(5 6 13 16 19 20 21 26)
 
-              journalctl --since now -f -u sc64deployer -o cat | \
-              jq -rc 'select(
-                (.event == "hit_banana") or
-                (.event == "explosion_crash") or
-                (.event == "fell_in_lava") or
-                (.event == "fell_in_water") or
-                (.event == "lightning_strike") or
-                (.event == "spinout")
+              allowlist=(
+                "hit_banana"
+                "explosion_crash"
+                "fell_in_lava"
+                "fell_in_water"
+                "lightning_strike"
+                "negroni_code"
+                "spinout"
               )
-              | select(.playerIndex != null)
-              | select((.isHumanPlayer // true) == true)' | \
-              while IFS= read -r line
-              do
-                playerIndex=$(echo "$line" | jq -r '.playerIndex')
-                event=$(echo "$line" | jq -r '.event')
 
-                echo "Dispensing drink for Player #$playerIndex (event: $event)"
-                gpioset -c 0 -l -t 1500ms,0s "''${playerToGPIO[$playerIndex]}=1" &
+              isAllowlisted() {
+                local e="$1"
+                for w in "''${allowlist[@]}"; do
+                  [[ "$e" == "$w" ]] && return 0
+                done
+                return 1
+              }
+
+              journalctl --since now -f -u sc64deployer -o cat | while IFS= read -r line
+              do
+                echo "$line" | jq -e . >/dev/null 2>&1 || continue
+
+                event=$(echo "$line" | jq -r '.event // empty') || continue
+                playerIndex=$(echo "$line" | jq -r '.playerIndex // empty') || continue
+
+                isAllowlisted "$event" || continue
+
+                if [ -n "$playerIndex" ]; then
+                  echo "Dispensing drink for Player #$playerIndex (event: $event)"
+                  gpioset -c 0 -l -t 1500ms,0s "''${playerToGPIO[$playerIndex]}=1" &
+                fi
               done
             '';
           };
