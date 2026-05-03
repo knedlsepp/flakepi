@@ -59,6 +59,7 @@
                 "high_tumble"
                 "hit_by_star"
                 "lightning_strike"
+                "low_tumble"
                 "negroni_code"
                 "spinout"
                 # "star_hit" # FIXME: if player hits CPU => issue # {"event":"star_hit", "ownerIndex":2, "playerIndex":0, "isHumanOwner":false, "isHumanPlayer":true}
