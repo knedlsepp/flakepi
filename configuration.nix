@@ -23,56 +23,120 @@
           '';
         };
 
-        drink-dispenser = pkgs.writeShellApplication {
-          name = "drink-dispenser";
-          runtimeInputs = [ pkgs.jq pkgs.libgpiod ];
-          text = ''
-            playerToGPIO=(5 6 13 16 19 20 21 26)
+        drink-dispenser = pkgs.writers.writePython3Bin "drink-dispenser" {
+          libraries = [ pkgs.python3.pkgs.libgpiod ];
+          flakeIgnore = ["E501"];
+        } ''
+          import json
+          import sys
+          import threading
+          import time
+          import gpiod
+          import logging
+          logging.basicConfig(level=logging.INFO)
 
-            allowlist=(
-              "hit_banana"
-              "explosion_crash"
-              "terrain_tumble"
-              "hit_paddle_boat"
-              "squished"
-              "fell_in_lava"
-              "fell_in_water"
-              "high_tumble"
-              "hit_by_star"
-              "lightning_strike"
-              "low_tumble"
-              "negroni_code"
-              "spinout"
-              "driving_spinout"
-              "early_start_spinout"
-              # "star_hit" # FIXME: if player hits CPU => issue # {"event":"star_hit", "ownerIndex":2, "playerIndex":0, "isHumanOwner":false, "isHumanPlayer":true}
-            )
+          PLAYER_TO_GPIO = {
+              0: 5,
+              1: 6,
+              2: 13,
+              3: 16,
+              4: 19,
+              5: 20,
+              6: 21,
+              7: 26,
+          }
 
-            isAllowlisted() {
-              local e="$1"
-              for w in "''${allowlist[@]}"; do
-                [[ "$e" == "$w" ]] && return 0
-              done
-              return 1
-            }
+          ALLOWLIST = {
+              "hit_banana",
+              "explosion_crash",
+              "terrain_tumble",
+              "hit_paddle_boat",
+              "squished",
+              "fell_in_lava",
+              "fell_in_water",
+              "high_tumble",
+              "hit_by_star",
+              "lightning_strike",
+              "low_tumble",
+              "negroni_code",
+              "spinout",
+              "driving_spinout",
+              "early_start_spinout",
+              # FIXME: if player hits CPU
+              # issue # {"event":"star_hit", "ownerIndex":2, "playerIndex":0,
+              # "isHumanOwner":false, "isHumanPlayer":true}
+          }
 
-            while IFS= read -r line
-            do
-              echo "$line" | jq -e . >/dev/null 2>&1 || continue
-              echo "Got event $line"
+          # Global line request for all GPIO pins
+          line_request = None
 
-              event=$(echo "$line" | jq -r '.event // empty') || continue
-              playerIndex=$(echo "$line" | jq -r '.playerIndex // empty') || continue
 
-              isAllowlisted "$event" || continue
+          def init_gpio():
+              """Initialize GPIO lines for all player pins."""
+              global line_request
+              config = {}
+              for pin in PLAYER_TO_GPIO.values():
+                  config[pin] = gpiod.LineSettings(
+                      active_low=True,
+                      direction=gpiod.line.Direction.OUTPUT,
+                      output_value=gpiod.line.Value.INACTIVE
+                  )
+              line_request = gpiod.request_lines(
+                  "/dev/gpiochip0",
+                  config=config,
+                  consumer="drink-dispenser"
+              )
+              logging.info("GPIO initialized - all pins set to INACTIVE")
 
-              if [ -n "$playerIndex" ]; then
-                echo "Dispensing drink for Player #$playerIndex (event: $event)"
-                gpioset -c 0 -l -t 1500ms,0s "''${playerToGPIO[$playerIndex]}=1" &
-              fi
-            done
-          '';
-        };
+
+          def trigger_gpio(gpio_pin):
+              """Trigger a GPIO pin for 1500ms in a background thread."""
+              logging.info(f"GPIO {gpio_pin} ON")
+              line_request.set_value(gpio_pin, gpiod.line.Value.ACTIVE)
+              time.sleep(1.5)
+              line_request.set_value(gpio_pin, gpiod.line.Value.INACTIVE)
+              logging.info(f"GPIO {gpio_pin} OFF")
+
+
+          def main():
+              init_gpio()
+              for line in sys.stdin:
+                  line = line.strip()
+                  if not line:
+                      continue
+
+                  try:
+                      data = json.loads(line)
+                  except json.JSONDecodeError:
+                      continue
+
+                  logging.info(f"Got event {line}")
+
+                  event = data.get("event")
+                  if event is None:
+                      continue
+
+                  if event not in ALLOWLIST:
+                      logging.info(f"Event {event} not in allowlist, skipping")
+                      continue
+
+                  player_index = data.get("playerIndex")
+                  if player_index is None:
+                      continue
+
+                  gpio_pin = PLAYER_TO_GPIO.get(player_index)
+                  if gpio_pin is not None:
+                      logging.info(f"Dispensing drink for Player #{player_index} (event: {event}, gpio: {gpio_pin})")
+                      thread = threading.Thread(
+                          target=trigger_gpio, args=(gpio_pin,)
+                      )
+                      thread.daemon = True
+                      thread.start()
+
+
+          if __name__ == "__main__":
+              main()
+        '';
       in
         "${pkgs.bash}/bin/bash -c '${upload-rom}/bin/upload-rom |& ${drink-dispenser}/bin/drink-dispenser'";
 
