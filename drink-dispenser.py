@@ -114,15 +114,10 @@ class PinController:
             self._deadline = new_deadline
             if not self._active:
                 self._active = True
-                if delay > 0:
-                    self._activation_timer = threading.Timer(delay, self._activate_and_schedule, [duration])
-                    self._activation_timer.daemon = True
-                    self._activation_timer.start()
-                    logging.info(f"GPIO {self._pin} scheduled to turn ON after {delay}s")
-                else:
-                    self._request.set_value(self._pin, gpiod.line.Value.ACTIVE)
-                    logging.info(f"GPIO {self._pin} ON")
-                    self._reschedule_locked(duration)
+                self._activation_timer = threading.Timer(delay, self._activate_and_schedule, [duration])
+                self._activation_timer.daemon = True
+                self._activation_timer.start()
+                logging.info(f"GPIO {self._pin} scheduled to turn ON after {delay}s")
             else:
                 # Already active, just extend the deadline
                 # If there's a pending activation timer, we need to handle it
@@ -131,15 +126,10 @@ class PinController:
                     self._activation_timer = None
                     # Pin is logically active but not physically active yet
                     # Need to activate it now or reschedule
-                    if delay > 0:
-                        self._activation_timer = threading.Timer(delay, self._activate_and_schedule, [duration])
-                        self._activation_timer.daemon = True
-                        self._activation_timer.start()
-                        logging.info(f"GPIO {self._pin} rescheduled to turn ON after {delay}s")
-                    else:
-                        self._request.set_value(self._pin, gpiod.line.Value.ACTIVE)
-                        logging.info(f"GPIO {self._pin} ON")
-                        self._reschedule_locked(duration)
+                    self._activation_timer = threading.Timer(delay, self._activate_and_schedule, [duration])
+                    self._activation_timer.daemon = True
+                    self._activation_timer.start()
+                    logging.info(f"GPIO {self._pin} rescheduled to turn ON after {delay}s")
                 else:
                     # Pin is physically active, just extend the deadline
                     self._reschedule_locked(duration)
