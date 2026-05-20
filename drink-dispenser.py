@@ -58,6 +58,25 @@ EVENT_DURATIONS: dict[str, float] = {
     # issue # {"event":"star_hit", "ownerIndex":2, "playerIndex":0,
     # "isHumanOwner":false, "isHumanPlayer":true}
 }
+
+EVENT_DELAYS: dict[str, float] = {
+    "driving_spinout": 0.3,
+    "early_start_spinout": 0.3,
+    "explosion_crash": 0.3,
+    "fell_in_lava": 0.3,
+    "fell_in_water": 0.3,
+    "high_tumble": 0.3,
+    "hit_banana": 0.3,
+    "hit_by_star": 0.3,
+    "hit_paddle_boat": 0.3,
+    "lightning_strike": 0.3,
+    "low_tumble": 0.3,
+    "negroni_code": 0.0,
+    "spinout": 0.3,
+    "squished": 0.3,
+    "terrain_tumble": 0.3,
+}
+
 GPIO_CHIP: str = "/dev/gpiochip0"
 CONSUMER: str = "drink-dispenser"
 
@@ -87,16 +106,32 @@ class PinController:
         self._active = False
         self._timer: threading.Timer | None = None
 
-    def trigger(self, duration: float) -> None:
-        """Extend (or start) the active window by duration from now."""
-        new_deadline = float(time.monotonic() + duration)
+    def trigger(self, delay: float, duration: float) -> None:
+        """Activate the pin after delay, then keep it ACTIVE for duration."""
+        new_deadline = float(time.monotonic() + delay + duration)
         with self._lock:
             self._deadline = new_deadline
             if not self._active:
                 self._active = True
-                self._request.set_value(self._pin, gpiod.line.Value.ACTIVE)
-                logging.info(f"GPIO {self._pin} ON")
-            self._reschedule_locked()
+                if delay > 0:
+                    self._timer = threading.Timer(delay, self._activate_and_schedule, [duration])
+                    self._timer.daemon = True
+                    self._timer.start()
+                    logging.info(f"GPIO {self._pin} scheduled to turn ON after {delay}s")
+                else:
+                    self._request.set_value(self._pin, gpiod.line.Value.ACTIVE)
+                    logging.info(f"GPIO {self._pin} ON")
+                    self._reschedule_locked(duration)
+            else:
+                # Already active, just extend the deadline
+                self._reschedule_locked(duration)
+
+    def _activate_and_schedule(self, duration: float) -> None:
+        """Activate the pin and schedule turn-off after duration."""
+        with self._lock:
+            self._request.set_value(self._pin, gpiod.line.Value.ACTIVE)
+            logging.info(f"GPIO {self._pin} ON (after delay)")
+            self._reschedule_locked(duration)
 
     def turn_off(self) -> None:
         """Unconditionally deactivate the pin (used during shutdown)."""
@@ -108,15 +143,15 @@ class PinController:
             self._active = False
             self._request.set_value(self._pin, gpiod.line.Value.INACTIVE)
 
-    def _reschedule_locked(self) -> None:
+    def _reschedule_locked(self, duration: float) -> None:
         if self._timer is not None:
             self._timer.cancel()
-        delay = (
+        remaining = (
             max(0.0, self._deadline - time.monotonic())
             if self._deadline is not None
-            else 0.0
+            else duration
         )
-        self._timer = threading.Timer(delay, self._maybe_turn_off)
+        self._timer = threading.Timer(remaining, self._maybe_turn_off)
         self._timer.daemon = True
         self._timer.start()
 
@@ -170,10 +205,11 @@ def main() -> None:
 
             gpio_pin = PLAYER_TO_GPIO[player_index]
             duration = EVENT_DURATIONS[event]
+            delay = EVENT_DELAYS[event]
             logging.info(
-                f"Dispensing drink for Player #{player_index} (event: {event}, gpio: {gpio_pin}, duration: {duration}s)"
+                f"Dispensing drink for Player #{player_index} (event: {event}, gpio: {gpio_pin}, delay: {delay}s, duration: {duration}s)"
             )
-            ctrl.trigger(duration)
+            ctrl.trigger(delay, duration)
 
     except KeyboardInterrupt:
         pass
