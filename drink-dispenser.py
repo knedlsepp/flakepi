@@ -105,6 +105,7 @@ class PinController:
         self._deadline: float | None = None
         self._active = False
         self._timer: threading.Timer | None = None
+        self._activation_timer: threading.Timer | None = None
 
     def trigger(self, delay: float, duration: float) -> None:
         """Activate the pin after delay, then keep it ACTIVE for duration."""
@@ -114,9 +115,9 @@ class PinController:
             if not self._active:
                 self._active = True
                 if delay > 0:
-                    self._timer = threading.Timer(delay, self._activate_and_schedule, [duration])
-                    self._timer.daemon = True
-                    self._timer.start()
+                    self._activation_timer = threading.Timer(delay, self._activate_and_schedule, [duration])
+                    self._activation_timer.daemon = True
+                    self._activation_timer.start()
                     logging.info(f"GPIO {self._pin} scheduled to turn ON after {delay}s")
                 else:
                     self._request.set_value(self._pin, gpiod.line.Value.ACTIVE)
@@ -124,11 +125,29 @@ class PinController:
                     self._reschedule_locked(duration)
             else:
                 # Already active, just extend the deadline
-                self._reschedule_locked(duration)
+                # If there's a pending activation timer, we need to handle it
+                if self._activation_timer is not None:
+                    self._activation_timer.cancel()
+                    self._activation_timer = None
+                    # Pin is logically active but not physically active yet
+                    # Need to activate it now or reschedule
+                    if delay > 0:
+                        self._activation_timer = threading.Timer(delay, self._activate_and_schedule, [duration])
+                        self._activation_timer.daemon = True
+                        self._activation_timer.start()
+                        logging.info(f"GPIO {self._pin} rescheduled to turn ON after {delay}s")
+                    else:
+                        self._request.set_value(self._pin, gpiod.line.Value.ACTIVE)
+                        logging.info(f"GPIO {self._pin} ON")
+                        self._reschedule_locked(duration)
+                else:
+                    # Pin is physically active, just extend the deadline
+                    self._reschedule_locked(duration)
 
     def _activate_and_schedule(self, duration: float) -> None:
         """Activate the pin and schedule turn-off after duration."""
         with self._lock:
+            self._activation_timer = None
             self._request.set_value(self._pin, gpiod.line.Value.ACTIVE)
             logging.info(f"GPIO {self._pin} ON (after delay)")
             self._reschedule_locked(duration)
@@ -139,6 +158,9 @@ class PinController:
             if self._timer is not None:
                 self._timer.cancel()
                 self._timer = None
+            if self._activation_timer is not None:
+                self._activation_timer.cancel()
+                self._activation_timer = None
             self._deadline = None
             self._active = False
             self._request.set_value(self._pin, gpiod.line.Value.INACTIVE)
