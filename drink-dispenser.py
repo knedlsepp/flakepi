@@ -38,28 +38,26 @@ PLAYER_TO_GPIO: dict[int, int] = {
     7: 26,
 }
 
-ALLOWLIST: set[str] = {
-    "hit_banana",
-    "explosion_crash",
-    "terrain_tumble",
-    "hit_paddle_boat",
-    "squished",
-    "fell_in_lava",
-    "fell_in_water",
-    "high_tumble",
-    "hit_by_star",
-    "lightning_strike",
-    "low_tumble",
-    "negroni_code",
-    "spinout",
-    "driving_spinout",
-    "early_start_spinout",
+EVENT_DURATIONS: dict[str, float] = {
+    "driving_spinout": 1.5,
+    "early_start_spinout": 1.5,
+    "explosion_crash": 1.5,
+    "fell_in_lava": 1.5,
+    "fell_in_water": 1.5,
+    "high_tumble": 1.5,
+    "hit_banana": 1.5,
+    "hit_by_star": 1.5,
+    "hit_paddle_boat": 1.5,
+    "lightning_strike": 1.5,
+    "low_tumble": 1.5,
+    "negroni_code": 0.1,
+    "spinout": 1.5,
+    "squished": 1.5,
+    "terrain_tumble": 1.5,
     # FIXME: if player hits CPU
     # issue # {"event":"star_hit", "ownerIndex":2, "playerIndex":0,
     # "isHumanOwner":false, "isHumanPlayer":true}
 }
-
-ON_DURATION: float = 1.5  # seconds
 GPIO_CHIP: str = "/dev/gpiochip0"
 CONSUMER: str = "drink-dispenser"
 
@@ -89,9 +87,9 @@ class PinController:
         self._active = False
         self._timer: threading.Timer | None = None
 
-    def trigger(self) -> None:
-        """Extend (or start) the active window by ON_DURATION from now."""
-        new_deadline = float(time.monotonic() + ON_DURATION)
+    def trigger(self, duration: float) -> None:
+        """Extend (or start) the active window by duration from now."""
+        new_deadline = float(time.monotonic() + duration)
         with self._lock:
             self._deadline = new_deadline
             if not self._active:
@@ -158,8 +156,8 @@ def main() -> None:
             event = data.get("event")
             if event is None:
                 continue
-            if event not in ALLOWLIST:
-                logging.info(f"Event '{event}' not in allowlist, skipping")
+            if event not in EVENT_DURATIONS:
+                logging.info(f"Event '{event}' not in event durations, skipping")
                 continue
 
             player_index = data.get("playerIndex")
@@ -171,10 +169,11 @@ def main() -> None:
                 continue
 
             gpio_pin = PLAYER_TO_GPIO[player_index]
+            duration = EVENT_DURATIONS[event]
             logging.info(
-                f"Dispensing drink for Player #{player_index} (event: {event}, gpio: {gpio_pin})"
+                f"Dispensing drink for Player #{player_index} (event: {event}, gpio: {gpio_pin}, duration: {duration}s)"
             )
-            ctrl.trigger()
+            ctrl.trigger(duration)
 
     except KeyboardInterrupt:
         pass
