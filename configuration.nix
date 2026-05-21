@@ -11,26 +11,30 @@
     };
     serviceConfig = {
       Type = "simple";
-      ExecStart =  let
-        upload-rom = pkgs.writeShellApplication {
-          name = "upload-rom";
-          runtimeInputs = [ pkgs.sc64deployer ];
-          text = ''
-            until sc64deployer list; do sleep 2; done
-            sc64deployer upload /var/lib/sc64deployer/build.rom
-            # Prevent "[IS-Viewer 64]: Stopped listening" via 'tail -f /dev/null'
-            exec tail -f /dev/null | sc64deployer debug --isv 0x03FF0000
+      ExecStart =
+        let
+          upload-rom = pkgs.writeShellApplication {
+            name = "upload-rom";
+            runtimeInputs = [ pkgs.sc64deployer ];
+            text = ''
+              until sc64deployer list; do sleep 2; done
+              sc64deployer upload /var/lib/sc64deployer/build.rom
+              # Prevent "[IS-Viewer 64]: Stopped listening" via 'tail -f /dev/null'
+              exec tail -f /dev/null | sc64deployer debug --isv 0x03FF0000
+            '';
+          };
+          drink-dispenser = pkgs.writers.writePython3Bin "drink-dispenser"
+            {
+              libraries = [ pkgs.python3.pkgs.libgpiod ];
+              flakeIgnore = [ "E501" ];
+            }
+            (builtins.readFile ./drink-dispenser.py);
+          sc64deployer = pkgs.writeShellScript "" ''
+            set -euo pipefail
+            ${upload-rom}/bin/upload-rom |& ${drink-dispenser}/bin/drink-dispenser
           '';
-        };
-        drink-dispenser = pkgs.writers.writePython3Bin "drink-dispenser" {
-          libraries = [ pkgs.python3.pkgs.libgpiod ];
-          flakeIgnore = ["E501"];
-        } (builtins.readFile ./drink-dispenser.py);
-        sc64deployer = pkgs.writeShellScript "" ''
-          set -euo pipefail
-          ${upload-rom}/bin/upload-rom |& ${drink-dispenser}/bin/drink-dispenser
-        '';
-        in sc64deployer;
+        in
+        sc64deployer;
 
       User = "sc64deployer";
       Group = "sc64deployer";
@@ -48,16 +52,16 @@
     createHome = true;
     description = "sc64deployer service user";
     group = "sc64deployer";
-    extraGroups =  [
+    extraGroups = [
       "dialout" # Access to serial device
-      "gpio"    # Access to GPIO devices
+      "gpio" # Access to GPIO devices
     ];
   };
 
   users.groups.sc64deployer = { };
   users.groups.gpio = { };
   services.udev.extraRules = ''
-      KERNEL=="gpiochip[0-9]*", GROUP="gpio", MODE="0660"
+    KERNEL=="gpiochip[0-9]*", GROUP="gpio", MODE="0660"
   '';
 
 
