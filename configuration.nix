@@ -22,13 +22,15 @@
             exec tail -f /dev/null | sc64deployer debug --isv 0x03FF0000
           '';
         };
-
         drink-dispenser = pkgs.writers.writePython3Bin "drink-dispenser" {
           libraries = [ pkgs.python3.pkgs.libgpiod ];
           flakeIgnore = ["E501"];
         } (builtins.readFile ./drink-dispenser.py);
-      in
-        "${pkgs.bash}/bin/bash -c '${upload-rom}/bin/upload-rom |& ${drink-dispenser}/bin/drink-dispenser'";
+        sc64deployer = pkgs.writeShellScript "" ''
+          set -euo pipefail
+          ${upload-rom}/bin/upload-rom |& ${drink-dispenser}/bin/drink-dispenser
+        '';
+        in sc64deployer;
 
       User = "sc64deployer";
       Group = "sc64deployer";
