@@ -29,7 +29,7 @@
               flakeIgnore = [ "E501" ];
             }
             (builtins.readFile ./drink-dispenser.py);
-          sc64deployer = pkgs.writeShellScript "" ''
+          sc64deployer = pkgs.writeShellScript "sc64deployer" ''
             set -euo pipefail
             ${upload-rom}/bin/upload-rom |& ${drink-dispenser}/bin/drink-dispenser
           '';
