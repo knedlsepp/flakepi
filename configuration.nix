@@ -31,7 +31,11 @@
             (builtins.readFile ./drink-dispenser.py);
           sc64deployer = pkgs.writeShellScript "sc64deployer" ''
             set -euo pipefail
-            ${upload-rom}/bin/upload-rom |& ${drink-dispenser}/bin/drink-dispenser
+            # Wait for /dev/gpiochip0 to exist and be readable/writable (Poor man's systemd After)
+            until [ -r "/dev/gpiochip0" ] && [ -w "/dev/gpiochip0" ]; do
+              sleep 1
+            done
+            ${upload-rom}/bin/upload-rom | ${drink-dispenser}/bin/drink-dispenser
           '';
         in
         sc64deployer;
